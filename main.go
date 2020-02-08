@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 
 	"github.com/google/go-github/v29/github"
 	"github.com/pkg/errors"
@@ -25,9 +27,12 @@ func main() {
 	c := &Check{
 		g: client,
 
-		Org: "multitheftauto", Repo: "mtasa-blue", PR: 1031,
+		// Org: "multitheftauto", Repo: "mtasa-blue", PR: 1031,
 		// Org: "facebook", Repo: "react", PR: 7311,
 	}
+
+	// Get data from environment
+	c.Org, c.Repo, c.PR = getEnvInfo()
 
 	ok := false
 	defer func() {
@@ -128,4 +133,25 @@ func (c *Check) isReady(ctx context.Context) (int, error) {
 	}
 
 	return needed, nil
+}
+
+func getEnvInfo() (org string, repo string, pr int) {
+	repoStrs := strings.Split(os.Getenv("GITHUB_REPOSITORY"), "/")
+	org = repoStrs[0]
+	repo = repoStrs[1]
+
+	var err error
+	pr, err = strconv.Atoi(
+		strings.TrimSuffix(
+			strings.TrimPrefix(
+				os.Getenv("GITHUB_REF"),
+				"refs/pull/"),
+			"/merge",
+		),
+	)
+
+	if err != nil {
+		panic(err.Error())
+	}
+	return
 }
